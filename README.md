@@ -102,14 +102,15 @@ Your diagram must explicitly label the communication protocols used between comp
 Example Mermaid diagram (you can copy and adapt):
 
 ```mermaid
-flowchart LR
+flowchart TD
   A[Wokwi Device] -->|MQTT publish: sensor data| B[MQTT Broker]
-  B -->|MQTT subscribe| C[Backend Service]
-  C -->|HTTP/HTTPS API| E[Web Dashboard]
-  E -->|WebSocket (real-time updates)| C
+  B -->|sensor data| C[Backend Service]
   C --> D[(Database)]
-  E -->|MQTT publish: command| B
-  B -->|MQTT subscribe: control message| A
+  C -->|REST API| E[Web Dashboard]
+  E <-->|WebSocket, realtid| C
+  E -->|skicka kommando| C
+  C -->|MQTT publish: command| B
+  B -->|control message| A
 ```
 
 ### 4) Database Strategy
