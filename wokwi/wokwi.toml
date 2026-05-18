@@ -1,4 +1,0 @@
-[wokwi]
-version = 1
-firmware = "main.py"
-elf = "main.py"
