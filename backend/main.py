@@ -17,7 +17,9 @@ INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
 INFLUX_ORG = os.getenv("INFLUX_ORG")
 INFLUX_BUCKET = os.getenv("INFLUX_BUCKET")
 
-influx_client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
+influx_client = InfluxDBClient(
+    url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG
+)
 write_api = influx_client.write_api(write_options=SYNCHRONOUS)
 query_api = influx_client.query_api()
 
@@ -25,6 +27,7 @@ query_api = influx_client.query_api()
 MQTT_BROKER = os.getenv("MQTT_BROKER")
 STUDENT_ID = os.getenv("STUDENT_ID")
 SENSOR_TOPIC = f"lnu/iot/{STUDENT_ID}/sensor"
+
 
 def on_message(client, userdata, msg):
     try:
@@ -39,6 +42,7 @@ def on_message(client, userdata, msg):
     except Exception as e:
         print(f"Fel: {e}")
 
+
 def start_mqtt():
     client = mqtt.Client()
     client.on_message = on_message
@@ -47,12 +51,14 @@ def start_mqtt():
     client.loop_start()
     return client
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     mqtt_client = start_mqtt()
     print("MQTT startat!")
     yield
     mqtt_client.loop_stop()
+
 
 app = FastAPI(lifespan=lifespan)
 
@@ -62,6 +68,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.get("/api/data")
 def get_data(minutes: int = 30):
