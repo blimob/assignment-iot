@@ -27,7 +27,7 @@ const STUDENT_ID = "bm222mr";
 const SENSOR_TOPIC = `lnu/iot/${STUDENT_ID}/sensor`;
 const COMMAND_TOPIC = `lnu/iot/${STUDENT_ID}/command/led`;
 const MQTT_BROKER = "wss://broker.emqx.io:8084/mqtt";
-const API_URL = "http://localhost:8000/api/data";
+const API_URL = "https://fastapi-production-959b.up.railway.app/api/data";
 
 export default function App() {
   const [labels, setLabels] = useState([]);
