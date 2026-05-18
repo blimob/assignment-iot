@@ -65,18 +65,21 @@ app.add_middleware(
 
 @app.get("/api/data")
 def get_data(minutes: int = 30):
-    query = f'''
-    from(bucket: "{INFLUX_BUCKET}")
-    |> range(start: -{minutes}m)
-    |> filter(fn: (r) => r._measurement == "temperature")
-    |> filter(fn: (r) => r._field == "value")
-    '''
-    tables = query_api.query(query, org=INFLUX_ORG)
-    result = []
-    for table in tables:
-        for record in table.records:
-            result.append({
-                "timestamp": record.get_time().isoformat(),
-                "value": record.get_value()
-            })
-    return result
+    try:
+        query = f'''
+        from(bucket: "{INFLUX_BUCKET}")
+        |> range(start: -{minutes}m)
+        |> filter(fn: (r) => r._measurement == "temperature")
+        |> filter(fn: (r) => r._field == "value")
+        '''
+        tables = query_api.query(query, org=INFLUX_ORG)
+        result = []
+        for table in tables:
+            for record in table.records:
+                result.append({
+                    "timestamp": record.get_time().isoformat(),
+                    "value": record.get_value()
+                })
+        return result
+    except Exception as e:
+        return {"error": str(e)}
