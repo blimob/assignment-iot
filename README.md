@@ -1,151 +1,98 @@
-# Assignment: Internet of Things (IoT)
+# IoT Assignment – bm222mr
 
-Hardware and sensors are increasingly integrated into everyday products. As a web developer, understanding how to communicate with connected devices using lightweight protocols is a valuable skill.
+## 1. Project Links
 
-In this assignment, you will build an end-to-end IoT pipeline: simulate a device, publish sensor data through MQTT, store and process data in your backend, and present it in a real-time web dashboard that can also send commands back to the device.
+- **Live Dashboard:** https://extraordinary-salmiakki-c02e59.netlify.app/
+- **Backend API:** https://fastapi-production-959b.up.railway.app/api/data
+- **Repository:** https://gitlab.lnu.se/1dv027/student/bm222mr/assignment-iot
 
-## Learning Outcomes
+## 2. Project Overview
 
-By completing this assignment, you will:
-- Collect and stream real-time sensor data using MQTT.
-- Design a basic architecture for IoT data ingestion and visualization.
-- Store time-series data in a suitable database.
-- Build a bi-directional dashboard for monitoring and control.
+This project is an end-to-end IoT pipeline that monitors room temperature using a physical ESP32 microcontroller with a DHT11 temperature sensor. The device publishes sensor data every 2 seconds via MQTT to a public broker. A FastAPI backend subscribes to the MQTT topic, stores the data in InfluxDB, and exposes a REST API for historical data. A React dashboard visualizes both real-time and historical temperature data, and allows the user to toggle an LED on the ESP32 via MQTT commands.
 
-## Assignment Description
+**Hardware:**
+- Freenove ESP32 Dev Board
+- DHT11 temperature sensor
+- Red LED with resistor
 
-You will simulate an IoT device in [Wokwi](https://wokwi.com/). The simulated device should:
-- Read values from a sensor (or sensors).
-- Publish sensor data to an MQTT broker on a recurring interval.
-- Subscribe to command topics and react to incoming control messages (for example, toggling an LED).
+**Dashboard features:**
+- Real-time temperature chart
+- Historical data on load
+- LED on/off control
 
-You will also build a dashboard interface that:
-- Subscribes to sensor updates in real time.
-- Visualizes current and/or historical values.
-- Publishes command messages back to the device.
+## 3. Architecture and Data Flow
 
-You are expected to implement persistence and realtime data handling using one of these mandatory implementation paths:
-- **Path A (Custom app stack):** custom backend + custom dashboard UI.
-- **Path C (Node-RED stack):** Node-RED flow + Node-RED dashboard UI.
+```mermaid
+flowchart TD
+  A[ESP32 + DHT11] -->|MQTT publish: sensor data| B[MQTT Broker broker.emqx.io]
+  B -->|MQTT subscribe| C[FastAPI Backend]
+  C -->|Write| D[(InfluxDB)]
+  D -->|Query| C
+  C -->|REST API HTTP| E[React Dashboard]
+  E -->|WebSocket WSS MQTT| B
+  B -->|MQTT subscribe| E
+  E -->|MQTT publish: LED command| B
+  B -->|MQTT subscribe| A
+```
 
-## Minimum Requirements (Mandatory / G)
+**Data flow:**
+1. ESP32 reads temperature from DHT11 every 2 seconds
+2. ESP32 publishes JSON to `lnu/iot/bm222mr/sensor` via MQTT
+3. FastAPI backend subscribes to the topic and stores data in InfluxDB
+4. React dashboard fetches historical data from `GET /api/data` on load
+5. React dashboard subscribes to MQTT via WebSocket for real-time updates
+6. User toggles LED from dashboard → publishes to `lnu/iot/bm222mr/command/led`
+7. ESP32 receives command and toggles LED
 
-Your solution must include:
-- A working Wokwi simulation.
-- A data-processing layer that ingests sensor data from MQTT (custom backend or Node-RED flow).
-- MQTT publish and subscribe flows (device -> dashboard/backend and dashboard -> device).
-- A deployed dashboard UI (custom frontend or Node-RED dashboard).
-- Persistent data storage in a database of your choice.
-- A historical data access layer for dashboard initialization (custom API or Node-RED data flow).
-- A short report documenting your implementation.
+![Hardware setup](images/hardware.jpg)
+![Dashboard](images/dashboard.jpg)
 
-Wokwi setup:
-- Use a starter project that is provided in Moodle
-- Or build your own equivalent setup (MCU + sensor + LED).
+## 4. Database Strategy
 
-## Recommended MQTT Topics and Payloads
+**Database:** InfluxDB 2.7 (hosted on Railway)
 
-Use your own topic namespace to avoid collisions. Replace `[student_id]` with your own identifier.
+**Data model:**
+- Measurement: `temperature`
+- Tag: `student` = `bm222mr`
+- Field: `value` (float) – temperature in Celsius
+- Timestamp: server time in nanoseconds
 
-### Sensor Data (published by Wokwi)
-- **Topic:** `lnu/iot/[student_id]/sensor`
-- **Payload (JSON):**
+**Time-series considerations:**
+- Data is ingested every 2 seconds
+- Dashboard queries last 30 minutes by default
+- InfluxDB is optimized for time-series data with built-in retention policies
 
+## 5. MQTT Topics and Payload Documentation
+
+**Sensor data (published by ESP32):**
+- Topic: `lnu/iot/bm222mr/sensor`
+- Payload:
 ```json
 {
-  "value": 45,
-  "timestamp": 1710063386
+  "value": 24.5,
+  "timestamp": 0
 }
 ```
 
-### Device Commands (published by dashboard, subscribed by Wokwi)
-- **Topic:** `lnu/iot/[student_id]/command/led`
-- **Payload (JSON):**
-
+**LED command (published by dashboard):**
+- Topic: `lnu/iot/bm222mr/command/led`
+- Payload:
 ```json
 {
   "state": true
 }
 ```
 
-If you use additional sensors or controls, document all related topics and payload schemas in your report.
+## 6. Reflection
 
-## Submission Report Template
+**1. Which frontend technologies did you choose, and why?**
 
-Include the following sections in your report:
+React was chosen because it was already familiar from previous course assignments. Chart.js with react-chartjs-2 was used for visualization due to its simplicity and flexibility. mqtt.js was used for WebSocket-based MQTT communication in the browser.
 
-### 1) Project Links
-- **Live Dashboard URL:** [Link to deployed frontend, e.g. Vercel/Netlify/Cumulus]
-- **Wokwi Simulation URL:** [Public Wokwi project link]
-- **Backend/Database URL:** [Link to deployed backend stack, if applicable]
-- **Repository URL:** [Link to your source code]
+**2. How does handling real-time MQTT data over WebSockets differ from a standard REST API workflow?**
 
-### 2) Project Overview
-Briefly describe:
-- What your project does.
-- Which hardware/sensors you simulated.
-- What the dashboard allows the user to monitor/control.
+With REST, the client polls the server for new data at intervals. With MQTT over WebSockets, the connection is persistent and the server pushes new data to the client as soon as it arrives. This makes MQTT more efficient for real-time IoT data since there is no unnecessary polling.
 
-### 3) Architecture and Data Flow
-Explain how data moves through your system:
-- Wokwi device -> MQTT broker -> processing layer/database -> dashboard.
-- Dashboard -> MQTT command topic -> device action.
+**3. What was the most challenging integration step, and how did you solve it?**
 
-Use the placeholder below and replace it with your own architecture screenshot or diagram:
-
-```md
-[Insert architecture diagram or screenshot here]
-```
-
-Your diagram must explicitly label the communication protocols used between components (for example MQTT, WebSocket, HTTP/HTTPS).
-
-Example Mermaid diagram (you can copy and adapt):
-
-```mermaid
-flowchart TD
-  A[Wokwi Device] -->|MQTT publish: sensor data| B[MQTT Broker]
-  B -->|sensor data| C[Backend Service]
-  C --> D[(Database)]
-  C -->|REST API| E[Web Dashboard]
-  E <-->|WebSocket, realtid| C
-  E -->|send command| C
-  C -->|MQTT publish: command| B
-  B -->|control message| A
-```
-
-### 4) Database Strategy
-Document:
-- **Database chosen:** (for example InfluxDB, MongoDB, TimescaleDB)
-- **Data model:** measurement/collection/table structure
-- **Time-series considerations:** retention, indexing, query strategy, aggregation, etc.
-
-### 5) MQTT Topics and Payload Documentation
-List all topics used and provide example payloads. This should be precise enough to serve as integration documentation for your device and dashboard communication.
-
-### 6) Reflection
-Answer the following:
-1. Which frontend technologies did you choose, and why?
-2. How does handling real-time MQTT data over WebSockets differ from a standard REST API workflow?
-3. What was the most challenging integration step (hardware, broker, backend, database, frontend), and how did you solve it?
-
-## Hand-in Instructions
-
-Submit your work by creating a Merge Request targeting the `lnu/submit-branch`.
-
-If you used additional repositories or external services, include links to them in your submission report.
-
-## Grade Levels
-
-- **G:** Complete all mandatory requirements in this README.
-- **VG:** Complete all mandatory requirements **and** at least one optional VG extension.
-
-### Grading Policy Mapping
-
-- **Mandatory (G) mapping:** Equivalent to completing Issue 1-7 in `ISSUES.md`.
-- **Issue 4 path rule:** You must complete either Path A (custom API) or Path C (Node-RED historical access), and document your chosen approach.
-- **Optional (VG) mapping:** Equivalent to completing at least one of VG-A, VG-B, or VG-C in `ISSUES.md`.
-
-For any VG extension, include:
-- Security considerations (secrets handling, credentials, access restrictions).
-- Evidence (screenshots/video/logs) and short technical reflection.
-
+The most challenging part was getting the physical ESP32 to work with the DHT11 sensor. Initially the wrong sensor type (DHT22) and wrong GPIO pin were configured, causing invalid readings. This was solved by switching to DHT11 and testing different GPIO pins until the sensor responded correctly. Deploying the backend to Railway and connecting it to InfluxDB also required careful configuration of environment variables and internal networking.
