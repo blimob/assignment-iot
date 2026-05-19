@@ -44,8 +44,9 @@ flowchart TD
 6. User toggles LED from dashboard → publishes to `lnu/iot/bm222mr/command/led`
 7. ESP32 receives command and toggles LED
 
-![Hardware setup](images/hardware.jpg)
-![Dashboard](images/dashboard.jpg)
+![Hardware setup](images/IMG_1473.JPG)
+![Architecture diagram](images/Skärmavbild%202026-05-19%20kl.%2008.30.32.png)
+![Dashboard](images/IMG_1475.JPG)
 
 ## 4. Database Strategy
 
@@ -82,6 +83,7 @@ flowchart TD
   "state": true
 }
 ```
+![API data](images/IMG_1474.JPG) 
 
 ## 6. Reflection
 
